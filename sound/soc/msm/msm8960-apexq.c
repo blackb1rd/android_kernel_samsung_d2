@@ -1246,8 +1246,8 @@ static struct snd_soc_dai_link msm8960_dai[] = {
 		.codec_dai_name	= "tabla_rx1",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_SLIMBUS_0_RX,
-		.init = &msm8960_audrx_init,
-		.be_hw_params_fixup = msm8960_slim_0_rx_be_hw_params_fixup,
+		.init = &msm_audrx_init,
+		.be_hw_params_fixup = msm_slim_0_rx_be_hw_params_fixup,
 		.ops = &msm_be_ops,
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
@@ -1260,8 +1260,8 @@ static struct snd_soc_dai_link msm8960_dai[] = {
 		.codec_dai_name	= "tabla_tx1",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_SLIMBUS_0_TX,
-		.be_hw_params_fixup = msm8960_slim_0_tx_be_hw_params_fixup,
-		.ops = &msm8960_be_ops,
+		.be_hw_params_fixup = msm_slim_0_tx_be_hw_params_fixup,
+		.ops = &msm_be_ops,
 	},
 	/* Backend BT/FM DAI Links */
 	{
@@ -1382,9 +1382,9 @@ static struct snd_soc_dai_link msm8960_dai[] = {
 		.codec_dai_name = "tabla_rx2",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_EXTPROC_RX,
-		.be_hw_params_fixup = msm8960_slim_0_rx_be_hw_params_fixup,
-		.init = &msm8960_stubrx_init,
-		.ops = &msm8960_be_ops,
+		.be_hw_params_fixup = msm_slim_0_rx_be_hw_params_fixup,
+		.init = &msm_stubrx_init,
+		.ops = &msm_be_ops,
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
@@ -1396,8 +1396,8 @@ static struct snd_soc_dai_link msm8960_dai[] = {
 		.codec_dai_name = "tabla_tx1",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_EXTPROC_TX,
-		.be_hw_params_fixup = msm8960_slim_0_tx_be_hw_params_fixup,
-		.ops = &msm8960_be_ops,
+		.be_hw_params_fixup = msm_slim_0_tx_be_hw_params_fixup,
+		.ops = &msm_be_ops,
 	},
 	{
 		.name = LPASS_BE_SLIMBUS_1_RX,
@@ -1408,8 +1408,8 @@ static struct snd_soc_dai_link msm8960_dai[] = {
 		.codec_dai_name = "msm-stub-rx",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_SLIMBUS_1_RX,
-		.be_hw_params_fixup = msm8960_slim_1_rx_be_hw_params_fixup,
-		.ops = &msm8960_slimbus_1_be_ops,
+		.be_hw_params_fixup = msm_slim_1_rx_be_hw_params_fixup,
+		.ops = &msm_slimbus_1_be_ops,
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
@@ -1421,8 +1421,59 @@ static struct snd_soc_dai_link msm8960_dai[] = {
 		.codec_dai_name = "msm-stub-tx",
 		.no_pcm = 1,
 		.be_id = MSM_BACKEND_DAI_SLIMBUS_1_TX,
-		.be_hw_params_fixup = msm8960_slim_1_tx_be_hw_params_fixup,
-		.ops = &msm8960_slimbus_1_be_ops,
+		.be_hw_params_fixup = msm_slim_1_tx_be_hw_params_fixup,
+		.ops = &msm_slimbus_1_be_ops,
+	},
+	/* Ultrasound TX Back End DAI Link */
+	{
+		.name = "SLIMBUS_2 Hostless Capture",
+		.stream_name = "SLIMBUS_2 Hostless Capture",
+		.cpu_dai_name = "msm-dai-q6.16389",
+		.platform_name = "msm-pcm-hostless",
+		.codec_name = "tabla_codec",
+		.codec_dai_name = "tabla_tx2",
+		.ignore_suspend = 1,
+		.no_host_mode = SND_SOC_DAI_LINK_NO_HOST,
+		.ops = &msm_slimbus_2_be_ops,
+	},
+	/* Ultrasound RX Back End DAI Link */
+	{
+		.name = "SLIMBUS_2 Hostless Playback",
+		.stream_name = "SLIMBUS_2 Hostless Playback",
+		.cpu_dai_name = "msm-dai-q6.16388",
+		.platform_name = "msm-pcm-hostless",
+		.codec_name = "tabla_codec",
+		.codec_dai_name = "tabla_rx3",
+		.ignore_suspend = 1,
+		.no_host_mode = SND_SOC_DAI_LINK_NO_HOST,
+		.ops = &msm_slimbus_2_be_ops,
+	},
+	/* Incall Music Back End DAI Link */
+	{
+		.name = LPASS_BE_SLIMBUS_4_RX,
+		.stream_name = "Slimbus4 Playback",
+		.cpu_dai_name = "msm-dai-q6.16392",
+		.platform_name = "msm-pcm-routing",
+		.codec_name = "msm-stub-codec.1",
+		.codec_dai_name = "msm-stub-rx",
+		.no_pcm = 1,
+		.be_id = MSM_BACKEND_DAI_SLIMBUS_4_RX,
+		.be_hw_params_fixup = msm_slim_4_rx_be_hw_params_fixup,
+		.ops = &msm_slimbus_4_be_ops,
+		.ignore_pmdown_time = 1, /* this dainlink has playback support */
+	},
+	/* Incall Record Back End DAI Link */
+	{
+		.name = LPASS_BE_SLIMBUS_4_TX,
+		.stream_name = "Slimbus4 Capture",
+		.cpu_dai_name = "msm-dai-q6.16393",
+		.platform_name = "msm-pcm-routing",
+		.codec_name = "msm-stub-codec.1",
+		.codec_dai_name = "msm-stub-tx",
+		.no_pcm = 1,
+		.be_id = MSM_BACKEND_DAI_SLIMBUS_4_TX,
+		.be_hw_params_fixup = msm_slim_4_tx_be_hw_params_fixup,
+		.ops = &msm_slimbus_4_be_ops,
 	},
 	{
 		.name = LPASS_BE_STUB_1_TX,
@@ -1437,8 +1488,33 @@ static struct snd_soc_dai_link msm8960_dai[] = {
 		* Rx is fed as reference for EC, the config of this DAI is
 		* based on that of the Rx path.
 		*/
-		.be_hw_params_fixup = msm8960_slim_0_rx_be_hw_params_fixup,
-		.ops = &msm8960_be_ops,
+		.be_hw_params_fixup = msm_slim_0_rx_be_hw_params_fixup,
+		.ops = &msm_be_ops,
+	},
+	{
+		.name = LPASS_BE_SLIMBUS_3_RX,
+		.stream_name = "Slimbus3 Playback",
+		.cpu_dai_name = "msm-dai-q6.16390",
+		.platform_name = "msm-pcm-routing",
+		.codec_name = "msm-stub-codec.1",
+		.codec_dai_name = "msm-stub-rx",
+		.no_pcm = 1,
+		.be_id = MSM_BACKEND_DAI_SLIMBUS_3_RX,
+		.be_hw_params_fixup = msm_slim_3_rx_be_hw_params_fixup,
+		.ops = &msm_slimbus_3_be_ops,
+		.ignore_pmdown_time = 1, /* this dainlink has playback support */
+	},
+	{
+		.name = LPASS_BE_SLIMBUS_3_TX,
+		.stream_name = "Slimbus3 Capture",
+		.cpu_dai_name = "msm-dai-q6.16391",
+		.platform_name = "msm-pcm-routing",
+		.codec_name = "msm-stub-codec.1",
+		.codec_dai_name = "msm-stub-tx",
+		.no_pcm = 1,
+		.be_id = MSM_BACKEND_DAI_SLIMBUS_3_TX,
+		.be_hw_params_fixup = msm_slim_3_tx_be_hw_params_fixup,
+		.ops = &msm_slimbus_3_be_ops,
 	},
 };
 

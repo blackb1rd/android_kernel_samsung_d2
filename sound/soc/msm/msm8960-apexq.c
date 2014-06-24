@@ -760,9 +760,39 @@ end:
 	return ret;
 }
 
-static int msm_stubrx_init(struct snd_soc_pcm_runtime *rtd)
+static int msm8960_stubrx_init(struct snd_soc_pcm_runtime *rtd)
 {
 	rtd->pmdown_time = 0;
+
+	return 0;
+}
+
+static int msm_slim_1_rx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
+					    struct snd_pcm_hw_params *params)
+{
+	struct snd_interval *rate = hw_param_interval(params,
+						      SNDRV_PCM_HW_PARAM_RATE);
+
+	struct snd_interval *channels = hw_param_interval(params,
+					SNDRV_PCM_HW_PARAM_CHANNELS);
+
+	rate->min = rate->max = msm_slim_1_rate;
+	channels->min = channels->max = msm_slim_1_rx_ch;
+
+	return 0;
+}
+
+static int msm_slim_1_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
+					    struct snd_pcm_hw_params *params)
+{
+	struct snd_interval *rate = hw_param_interval(params,
+					SNDRV_PCM_HW_PARAM_RATE);
+
+	struct snd_interval *channels = hw_param_interval(params,
+					SNDRV_PCM_HW_PARAM_CHANNELS);
+
+	rate->min = rate->max = msm_slim_1_rate;
+	channels->min = channels->max = msm_slim_1_tx_ch;
 
 	return 0;
 }
@@ -1255,7 +1285,7 @@ static struct snd_soc_dai_link msm8960_dai[] = {
 		.be_id = MSM_BACKEND_DAI_SLIMBUS_0_RX,
 		.init = &msm8960_audrx_init,
 		.be_hw_params_fixup = msm8960_slim_0_rx_be_hw_params_fixup,
-		.ops = &msm_be_ops,
+		.ops = &msm8960_be_ops,
 		.ignore_pmdown_time = 1, /* this dainlink has playback support */
 	},
 	{
@@ -1405,31 +1435,6 @@ static struct snd_soc_dai_link msm8960_dai[] = {
 		.be_id = MSM_BACKEND_DAI_EXTPROC_TX,
 		.be_hw_params_fixup = msm8960_slim_0_tx_be_hw_params_fixup,
 		.ops = &msm8960_be_ops,
-	},
-	{
-		.name = LPASS_BE_SLIMBUS_1_RX,
-		.stream_name = "Slimbus1 Playback",
-		.cpu_dai_name = "msm-dai-q6.16386",
-		.platform_name = "msm-pcm-routing",
-		.codec_name = "msm-stub-codec.1",
-		.codec_dai_name = "msm-stub-rx",
-		.no_pcm = 1,
-		.be_id = MSM_BACKEND_DAI_SLIMBUS_1_RX,
-		.be_hw_params_fixup = msm8960_slim_1_rx_be_hw_params_fixup,
-		.ops = &msm8960_slimbus_1_be_ops,
-		.ignore_pmdown_time = 1, /* this dainlink has playback support */
-	},
-	{
-		.name = LPASS_BE_SLIMBUS_1_TX,
-		.stream_name = "Slimbus1 Capture",
-		.cpu_dai_name = "msm-dai-q6.16387",
-		.platform_name = "msm-pcm-routing",
-		.codec_name = "msm-stub-codec.1",
-		.codec_dai_name = "msm-stub-tx",
-		.no_pcm = 1,
-		.be_id = MSM_BACKEND_DAI_SLIMBUS_1_TX,
-		.be_hw_params_fixup = msm8960_slim_1_tx_be_hw_params_fixup,
-		.ops = &msm8960_slimbus_1_be_ops,
 	},
 	{
 		.name = LPASS_BE_STUB_1_TX,

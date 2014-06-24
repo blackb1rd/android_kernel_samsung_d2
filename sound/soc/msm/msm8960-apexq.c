@@ -760,13 +760,6 @@ end:
 	return ret;
 }
 
-static int msm_stubrx_init(struct snd_soc_pcm_runtime *rtd)
-{
-	rtd->pmdown_time = 0;
-
-	return 0;
-}
-
 static int msm8960_audrx_init(struct snd_soc_pcm_runtime *rtd)
 {
 	int err;

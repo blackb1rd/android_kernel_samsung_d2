@@ -68,7 +68,7 @@ static struct snd_pcm_hardware msm_pcm_hardware_capture = {
 	.rate_min =             8000,
 	.rate_max =             48000,
 	.channels_min =         1,
-	.channels_max =         8,
+	.channels_max =         4,
 	.buffer_bytes_max =     CAPTURE_NUM_PERIODS * CAPTURE_MAX_PERIOD_SIZE,
 	.period_bytes_min =	CAPTURE_MIN_PERIOD_SIZE,
 	.period_bytes_max =     CAPTURE_MAX_PERIOD_SIZE,
@@ -88,7 +88,7 @@ static struct snd_pcm_hardware msm_pcm_hardware_playback = {
 	.rate_min =             8000,
 	.rate_max =             48000,
 	.channels_min =         1,
-	.channels_max =         6,
+	.channels_max =         2,
 	.buffer_bytes_max =     PLAYBACK_NUM_PERIODS * PLAYBACK_MAX_PERIOD_SIZE,
 	.period_bytes_min =     PLAYBACK_MIN_PERIOD_SIZE,
 	.period_bytes_max =     PLAYBACK_MAX_PERIOD_SIZE,
@@ -224,7 +224,7 @@ static int msm_pcm_playback_prepare(struct snd_pcm_substream *substream)
 	if (prtd->enabled)
 		return 0;
 
-	ret = q6asm_media_format_block_multi_ch_pcm(prtd->audio_client,
+	ret = q6asm_media_format_block_pcm(prtd->audio_client,
 			runtime->rate, runtime->channels);
 	if (ret < 0)
 		pr_info("%s: CMD Format block failed\n", __func__);
@@ -330,7 +330,7 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		runtime->hw = msm_pcm_hardware_playback;
 		ret = q6asm_open_write(prtd->audio_client,
-				FORMAT_MULTI_CHANNEL_LINEAR_PCM);
+				FORMAT_LINEAR_PCM);
 		if (ret < 0) {
 			pr_err("%s: pcm out open failed\n", __func__);
 			q6asm_audio_client_free(prtd->audio_client);

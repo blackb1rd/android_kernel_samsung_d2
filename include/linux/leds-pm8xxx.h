@@ -20,26 +20,24 @@
 
 /**
  * enum pm8xxx_leds - PMIC8XXX supported led ids
- * @PM8XXX_ID_LED_KB_LIGHT - keyboard backlight led
  * @PM8XXX_ID_LED_0 - First low current led
  * @PM8XXX_ID_LED_1 - Second low current led
  * @PM8XXX_ID_LED_2 - Third low current led
- * @PM8XXX_ID_FLASH_LED_0 - First flash led
- * @PM8XXX_ID_FLASH_LED_0 - Second flash led
  */
 enum pm8xxx_leds {
-	PM8XXX_ID_LED_KB_LIGHT = 1,
-	PM8XXX_ID_LED_0,
+	PM8XXX_ID_LED_0 = 0,
 	PM8XXX_ID_LED_1,
 	PM8XXX_ID_LED_2,
-	PM8XXX_ID_FLASH_LED_0,
-	PM8XXX_ID_FLASH_LED_1,
-	PM8XXX_ID_WLED,
-	PM8XXX_ID_RGB_LED_RED,
-	PM8XXX_ID_RGB_LED_GREEN,
-	PM8XXX_ID_RGB_LED_BLUE,
 	PM8XXX_ID_MAX,
 };
+
+#ifdef CONFIG_SEC_PRODUCT_8960
+enum pm8xxx_led_pats {
+	PM8XXX_LED_PAT8_RED,
+	PM8XXX_LED_PAT8_GREEN,
+	PM8XXX_LED_PAT8_BLUE,
+};
+#endif
 
 /**
  * pm8xxx_led_modes - Operating modes of LEDs
@@ -137,5 +135,12 @@ struct pm8xxx_led_platform_data {
 	struct	pm8xxx_led_config	*configs;
 	u32				num_configs;
 	int				use_pwm;
+#ifdef CONFIG_SEC_PRODUCT_8960
+	void (*led_power_on)(int);	
+#endif
 };
+
+#ifdef CONFIG_SEC_PRODUCT_8960
+extern struct class *sec_class;
+#endif
 #endif /* __LEDS_PM8XXX_H__ */

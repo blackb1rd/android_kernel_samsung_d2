@@ -31,6 +31,10 @@
 #include <linux/kobject.h>
 #include <linux/ctype.h>
 
+#ifdef CONFIG_SEC_DEBUG
+#include <linux/proc_avc.h>
+#endif
+
 /* selinuxfs pseudo filesystem for exporting the security policy API.
    Based on the proc code and the fs/nfsd/nfsctl.c code. */
 
@@ -1232,6 +1236,7 @@ static int sel_make_bools(void)
 		kfree(bool_pending_names[i]);
 	kfree(bool_pending_names);
 	kfree(bool_pending_values);
+	bool_num = 0;
 	bool_pending_names = NULL;
 	bool_pending_values = NULL;
 

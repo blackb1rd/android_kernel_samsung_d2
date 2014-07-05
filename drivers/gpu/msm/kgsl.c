@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2012,2014 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -78,9 +78,16 @@ void kgsl_hang_check(struct work_struct *work)
 	if (device->state == KGSL_STATE_ACTIVE) {
 
 		/* Check to see if the GPU is hung */
+#if !defined(CONFIG_MSM_IOMMU) && defined(CONFIG_SEC_PRODUCT_8960)
+		/*Hung detection should only be done on 2d device*/
+		if (device->id == KGSL_DEVICE_3D0 )
+		{
+#endif
 		if (adreno_ft_detect(device, prev_reg_val))
 			adreno_dump_and_exec_ft(device);
-
+#if !defined(CONFIG_MSM_IOMMU) && defined(CONFIG_SEC_PRODUCT_8960)
+		}
+#endif
 		mod_timer(&device->hang_timer,
 			(jiffies + msecs_to_jiffies(KGSL_TIMEOUT_PART)));
 	}
@@ -101,10 +108,17 @@ void hang_timer(unsigned long data)
 {
 	struct kgsl_device *device = (struct kgsl_device *) data;
 
+#if !defined(CONFIG_MSM_IOMMU) && defined(CONFIG_SEC_PRODUCT_8960)
+	/* check Hang only for 3d device */
+	if (device->id == KGSL_DEVICE_3D0) {
+#endif
 	if (device->state == KGSL_STATE_ACTIVE) {
 		/* Have work run in a non-interrupt context. */
 		queue_work(device->work_queue, &device->hang_check_ws);
 	}
+#if !defined(CONFIG_MSM_IOMMU) && defined(CONFIG_SEC_PRODUCT_8960)
+	}
+#endif
 }
 
 /**
@@ -146,6 +160,13 @@ void kgsl_trace_regwrite(struct kgsl_device *device, unsigned int offset,
 	trace_kgsl_regwrite(device, offset, value);
 }
 EXPORT_SYMBOL(kgsl_trace_regwrite);
+
+void kgsl_trace_kgsl_tz_params(struct kgsl_device *device, s64 total_time,
+		 s64 busy_time, int idle_time, int tz_val) {
+
+       trace_kgsl_tz_params(device, total_time, busy_time, idle_time, tz_val);
+}
+EXPORT_SYMBOL(kgsl_trace_kgsl_tz_params);
 
 int kgsl_memfree_hist_init(void)
 {
@@ -853,11 +874,11 @@ static void kgsl_destroy_process_private(struct kref *kref)
 	if (private->debug_root)
 		debugfs_remove_recursive(private->debug_root);
 
-	kgsl_mmu_putpagetable(private->pagetable);
-	idr_destroy(&private->mem_idr);
-
 	list_del(&private->list);
 	mutex_unlock(&kgsl_driver.process_mutex);
+
+	kgsl_mmu_putpagetable(private->pagetable);
+	idr_destroy(&private->mem_idr);
 
 	kfree(private);
 	return;
@@ -1176,7 +1197,8 @@ kgsl_sharedmem_find_region(struct kgsl_process_private *private,
 		entry = rb_entry(node, struct kgsl_mem_entry, node);
 
 		if (kgsl_gpuaddr_in_memdesc(&entry->memdesc, gpuaddr, size)) {
-			kgsl_mem_entry_get(entry);
+			if (!kgsl_mem_entry_get(entry))
+				break;
 			spin_unlock(&private->mem_lock);
 			return entry;
 		}
@@ -1276,14 +1298,17 @@ kgsl_sharedmem_region_empty(struct kgsl_process_private *private,
 static inline struct kgsl_mem_entry * __must_check
 kgsl_sharedmem_find_id(struct kgsl_process_private *process, unsigned int id)
 {
+	int result = 0;
 	struct kgsl_mem_entry *entry;
 
 	rcu_read_lock();
 	entry = idr_find(&process->mem_idr, id);
 	if (entry)
-		kgsl_mem_entry_get(entry);
+		result = kgsl_mem_entry_get(entry);
 	rcu_read_unlock();
 
+	if (!result)
+		return NULL;
 	return entry;
 }
 
@@ -2873,7 +2898,8 @@ kgsl_mmap_memstore(struct kgsl_device *device, struct vm_area_struct *vma)
 static void kgsl_gpumem_vm_open(struct vm_area_struct *vma)
 {
 	struct kgsl_mem_entry *entry = vma->vm_private_data;
-	kgsl_mem_entry_get(entry);
+	if (!kgsl_mem_entry_get(entry))
+		vma->vm_private_data = NULL;
 }
 
 static int
@@ -2881,6 +2907,8 @@ kgsl_gpumem_vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 {
 	struct kgsl_mem_entry *entry = vma->vm_private_data;
 
+	if (!entry)
+		return VM_FAULT_SIGBUS;
 	if (!entry->memdesc.ops || !entry->memdesc.ops->vmfault)
 		return VM_FAULT_SIGBUS;
 
@@ -2891,6 +2919,9 @@ static void
 kgsl_gpumem_vm_close(struct vm_area_struct *vma)
 {
 	struct kgsl_mem_entry *entry  = vma->vm_private_data;
+
+	if (!entry)
+		return;
 
 	entry->memdesc.useraddr = 0;
 	kgsl_mem_entry_put(entry);
@@ -2945,7 +2976,7 @@ err_put:
 static inline bool
 mmap_range_valid(unsigned long addr, unsigned long len)
 {
-	return (addr + len) > addr && (addr + len) < TASK_SIZE;
+	return ((ULONG_MAX - addr) > len) && ((addr + len) < TASK_SIZE);
 }
 
 static unsigned long

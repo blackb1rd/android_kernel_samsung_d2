@@ -307,7 +307,8 @@ static struct mem_type mem_types[] = {
 		.domain    = DOMAIN_KERNEL,
 	},
 	[MT_MEMORY_DMA_READY] = {
-		.prot_pte  = L_PTE_PRESENT | L_PTE_YOUNG | L_PTE_DIRTY,
+		.prot_pte  = L_PTE_PRESENT | L_PTE_YOUNG | L_PTE_DIRTY |
+				L_PTE_XN,
 		.prot_l1   = PMD_TYPE_TABLE,
 		.domain    = DOMAIN_KERNEL,
 	},
@@ -1125,7 +1126,7 @@ static void __init devicemaps_init(struct machine_desc *mdesc)
 	/*
 	 * Allocate the vector page early.
 	 */
-	vectors = early_alloc(PAGE_SIZE * 2);
+	vectors = early_alloc(PAGE_SIZE);
 
 	early_trap_init(vectors);
 
@@ -1170,26 +1171,14 @@ static void __init devicemaps_init(struct machine_desc *mdesc)
 	map.pfn = __phys_to_pfn(virt_to_phys(vectors));
 	map.virtual = 0xffff0000;
 	map.length = PAGE_SIZE;
-#ifdef CONFIG_KUSER_HELPERS
 	map.type = MT_HIGH_VECTORS;
-#else
-	map.type = MT_LOW_VECTORS;
-#endif
 	create_mapping(&map);
 
 	if (!vectors_high()) {
 		map.virtual = 0;
-		map.length = PAGE_SIZE * 2;
 		map.type = MT_LOW_VECTORS;
 		create_mapping(&map);
 	}
-
-	/* Now create a kernel read-only mapping */
-	map.pfn += 1;
-	map.virtual = 0xffff0000 + PAGE_SIZE;
-	map.length = PAGE_SIZE;
-	map.type = MT_LOW_VECTORS;
-	create_mapping(&map);
 
 	/*
 	 * Ask the machine support to map in the statically mapped devices.
@@ -1328,8 +1317,6 @@ void mem_text_write_kernel_word(unsigned long *addr, unsigned long word)
 }
 EXPORT_SYMBOL(mem_text_write_kernel_word);
 
-extern char __init_data[];
-
 static void __init map_lowmem(void)
 {
 	struct memblock_region *reg;
@@ -1350,7 +1337,7 @@ static void __init map_lowmem(void)
 #ifdef CONFIG_STRICT_MEMORY_RWX
 		if (start <= __pa(_text) && __pa(_text) < end) {
 			map.length = SECTION_SIZE;
-			map.type = MT_MEMORY;
+			map.type = MT_MEMORY_RW;
 
 			create_mapping(&map);
 
@@ -1370,14 +1357,15 @@ static void __init map_lowmem(void)
 
 			map.pfn = __phys_to_pfn(__pa(__init_begin));
 			map.virtual = (unsigned long)__init_begin;
-			map.length = __init_data - __init_begin;
-			map.type = MT_MEMORY;
+			map.length = (char *)__arch_info_begin - __init_begin;
+			map.type = MT_MEMORY_RX;
 
 			create_mapping(&map);
 
-			map.pfn = __phys_to_pfn(__pa(__init_data));
-			map.virtual = (unsigned long)__init_data;
-			map.length = __phys_to_virt(end) - (unsigned int)__init_data;
+			map.pfn = __phys_to_pfn(__pa(__arch_info_begin));
+			map.virtual = (unsigned long)__arch_info_begin;
+			map.length = __phys_to_virt(end) -
+				(unsigned long)__arch_info_begin;
 			map.type = MT_MEMORY_RW;
 		} else {
 			map.length = end - start;
@@ -1413,6 +1401,17 @@ void __init paging_init(struct machine_desc *mdesc)
 
 	/* allocate the zero page. */
 	zero_page = early_alloc(PAGE_SIZE);
+
+#ifdef TIMA_ENABLED
+	{
+	        /**TIMA_MAGIC*/
+	        void *mem_alloc_ptr;
+		unsigned int phy_addr; 
+		mem_alloc_ptr = early_alloc(0x200000);
+		phy_addr = __pa(mem_alloc_ptr);
+		printk(KERN_ERR"===TIMA===NEW=== -> mem_alloc_ptr= %p pa = %x\n", mem_alloc_ptr, phy_addr);
+	}
+#endif
 
 	bootmem_init();
 

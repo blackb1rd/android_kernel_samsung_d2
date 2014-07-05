@@ -34,6 +34,9 @@
 #include <mach/socinfo.h>
 #include <mach/subsystem_notif.h>
 #include <mach/subsystem_restart.h>
+#ifdef CONFIG_SEC_DEBUG
+#include <mach/sec_debug.h>
+#endif
 
 #include "smd_private.h"
 
@@ -114,6 +117,21 @@ DEFINE_SINGLE_RESTART_ORDER(orders_8x60_all, _order_8x60_all);
 static const char * const _order_8x60_modems[] = {"external_modem", "modem"};
 DEFINE_SINGLE_RESTART_ORDER(orders_8x60_modems, _order_8x60_modems);
 
+#ifndef CONFIG_MACH_JF
+/* MSM 8960 restart ordering info */
+static const char * const order_8960[] = {"modem", "lpass"};
+
+
+static struct subsys_soc_restart_order restart_orders_8960_one = {
+	.subsystem_list = order_8960,
+	.count = ARRAY_SIZE(order_8960),
+	.subsys_ptrs = {[ARRAY_SIZE(order_8960)] = NULL}
+	};
+
+static struct subsys_soc_restart_order *restart_orders_8960[] = {
+	&restart_orders_8960_one,
+};
+#endif
 /*SGLTE restart ordering info*/
 static const char * const order_8960_sglte[] = {"external_modem",
 						"modem"};
@@ -502,16 +520,28 @@ int subsystem_restart_dev(struct subsys_device *dev)
 		name, restart_level);
 
 	switch (restart_level) {
-
+#ifdef CONFIG_SEC_DEBUG_MDM_FILE_INFO
+	case RESET_SUBSYS_INDEPENDENT_SOC:
+		enable_ramdumps = sec_debug_is_enabled()? 1 : 0;
+		/* Fall through */
+#endif
 	case RESET_SUBSYS_COUPLED:
 	case RESET_SUBSYS_INDEPENDENT:
 		__subsystem_restart_dev(dev);
 		break;
 	case RESET_SOC:
-		panic("subsys-restart: Resetting the SoC - %s crashed.", name);
+		WARN(1, "subsys-restart: Resetting the SoC - %s crashed.", name);
+/* It should be used for APQ model to distingush AP side or MDM side */
+#ifdef CONFIG_SEC_DEBUG
+		panic("%s crashed: subsys-restart: Resetting the SoC",
+			name);
+#else
+		panic("subsys-restart: Resetting the SoC - %s crashed.",
+			name);
+#endif
 		break;
 	default:
-		panic("subsys-restart: Unknown restart level!\n");
+		pr_err("subsys-restart: Unknown restart level!\n");
 		break;
 	}
 
@@ -613,7 +643,12 @@ static int __init ssr_init_soc_restart_orders(void)
 		restart_orders = orders_8x60_all;
 		n_restart_orders = ARRAY_SIZE(orders_8x60_all);
 	}
-
+#ifndef CONFIG_MACH_JF
+	if (cpu_is_msm8960() || cpu_is_msm8930()) {
+		restart_orders = restart_orders_8960;
+		n_restart_orders = ARRAY_SIZE(restart_orders_8960);
+	}
+#endif
 	if (socinfo_get_platform_subtype() == PLATFORM_SUBTYPE_SGLTE) {
 		restart_orders = restart_orders_8960_sglte;
 		n_restart_orders = ARRAY_SIZE(restart_orders_8960_sglte);
@@ -629,17 +664,11 @@ static int __init ssr_init_soc_restart_orders(void)
 		mutex_init(&restart_orders[i]->shutdown_lock);
 	}
 
-	if (restart_orders == NULL || n_restart_orders < 1) {
-		WARN_ON(1);
-	}
-
 	return 0;
 }
 
 static int __init subsys_restart_init(void)
 {
-	restart_level = RESET_SOC;
-
 	ssr_wq = alloc_workqueue("ssr_wq", WQ_CPU_INTENSIVE, 0);
 	if (!ssr_wq)
 		panic("%s: out of memory\n", __func__);

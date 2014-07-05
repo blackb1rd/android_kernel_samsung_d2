@@ -60,6 +60,54 @@ struct cpu_freq {
 
 static DEFINE_PER_CPU(struct cpu_freq, cpu_freq_info);
 
+
+#ifdef CONFIG_SEC_DVFS
+static unsigned int upper_limit_freq = 1566000;
+static unsigned int lower_limit_freq;
+static unsigned int cpuinfo_max_freq;
+static unsigned int cpuinfo_min_freq;
+
+unsigned int get_min_lock(void)
+{
+	return lower_limit_freq;
+}
+
+unsigned int get_max_lock(void)
+{
+	return upper_limit_freq;
+}
+
+void set_min_lock(int freq)
+{
+	if (freq <= MIN_FREQ_LIMIT)
+		lower_limit_freq = 0;
+	else if (freq > MAX_FREQ_LIMIT)
+		lower_limit_freq = 0;
+	else
+		lower_limit_freq = freq;
+}
+
+void set_max_lock(int freq)
+{
+	if (freq < MIN_FREQ_LIMIT)
+		upper_limit_freq = 0;
+	else if (freq >= MAX_FREQ_LIMIT)
+		upper_limit_freq = 0;
+	else
+		upper_limit_freq = freq;
+}
+
+int get_max_freq(void)
+{
+	return cpuinfo_max_freq;
+}
+
+int get_min_freq(void)
+{
+	return cpuinfo_min_freq;
+}
+#endif
+
 static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq)
 {
 	int ret = 0;
@@ -80,6 +128,28 @@ static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq)
 			pr_debug("min: limiting freq to %d\n", new_freq);
 		}
 	}
+
+#ifdef CONFIG_SEC_DVFS
+	if (lower_limit_freq || upper_limit_freq) {
+		unsigned int t_freq = new_freq;
+
+		if (lower_limit_freq && new_freq < lower_limit_freq)
+			t_freq = lower_limit_freq;
+
+		if (upper_limit_freq && new_freq > upper_limit_freq)
+			t_freq = upper_limit_freq;
+
+		new_freq = t_freq;
+
+		if (new_freq < policy->min)
+			new_freq = policy->min;
+		if (new_freq > policy->max)
+			new_freq = policy->max;
+
+		if (new_freq == policy->cur)
+			return 0;
+	}
+#endif
 
 	freqs.old = policy->cur;
 	freqs.new = new_freq;
@@ -286,6 +356,11 @@ static int __cpuinit msm_cpufreq_init(struct cpufreq_policy *policy)
 	policy->max = CONFIG_MSM_CPU_FREQ_MAX;
 #endif
 
+#ifdef CONFIG_SEC_DVFS
+	cpuinfo_max_freq = policy->cpuinfo.max_freq;
+	cpuinfo_min_freq = policy->cpuinfo.min_freq;
+#endif
+
 	cur_freq = acpuclk_get_rate(policy->cpu);
 	if (cpufreq_frequency_table_target(policy, table, cur_freq,
 	    CPUFREQ_RELATION_H, &index) &&
@@ -403,7 +478,8 @@ static int __init msm_cpufreq_register(void)
 		per_cpu(cpufreq_suspend, cpu).device_suspended = 0;
 	}
 
-	msm_cpufreq_wq = create_workqueue("msm-cpufreq");
+	msm_cpufreq_wq = alloc_workqueue("msm-cpufreq",
+			WQ_MEM_RECLAIM | WQ_HIGHPRI, 1);
 	register_hotcpu_notifier(&msm_cpufreq_cpu_notifier);
 
 	return cpufreq_register_driver(&msm_cpufreq_driver);

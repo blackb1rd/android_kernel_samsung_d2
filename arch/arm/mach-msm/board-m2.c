@@ -3965,12 +3965,9 @@ static struct msm_i2c_platform_data msm8960_i2c_qup_gsbi1_pdata = {
 #endif
 
 static struct msm_i2c_platform_data msm8960_i2c_qup_gsbi3_pdata = {
-	.clk_freq = 400000,
+	.clk_freq = 100000,
 	.src_clk_rate = 24000000,
 };
-void msm_i2c_bwreset(int freq) {
-	msm8960_i2c_qup_gsbi3_pdata.clk_freq = freq;
-}
 
 static struct msm_i2c_platform_data msm8960_i2c_qup_gsbi7_pdata = {
 	.clk_freq = 100000,
@@ -4123,7 +4120,7 @@ static struct gpio_keys_button gpio_keys_button[] = {
 		.gpio			= -1,
 		.active_low		= 1,
 		.wakeup			= 0,
-		.debounce_interval	= 5, /* ms */
+		.debounce_interval	= 8, /* ms */
 		.desc			= "Vol Up",
 	},
 	{
@@ -4132,7 +4129,7 @@ static struct gpio_keys_button gpio_keys_button[] = {
 		.gpio			= -1,
 		.active_low		= 1,
 		.wakeup			= 0,
-		.debounce_interval	= 5, /* ms */
+		.debounce_interval	= 8, /* ms */
 		.desc			= "Vol Down",
 	},
 	{

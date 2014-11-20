@@ -6581,7 +6581,7 @@ dhd_dev_pno_stop_for_ssid(struct net_device *dev)
 }
 /* Linux wrapper to call common dhd_pno_set_for_ssid */
 int
-dhd_dev_pno_set_for_ssid(struct net_device *dev, wlc_ssid_t* ssids_local, int nssid,
+dhd_dev_pno_set_for_ssid(struct net_device *dev, wlc_ssid_ext_t* ssids_local, int nssid,
 	uint16  scan_fr, int pno_repeat, int pno_freq_expo_max, uint16 *channel_list, int nchan)
 {
 	dhd_info_t *dhd = *(dhd_info_t **)netdev_priv(dev);
@@ -7128,7 +7128,7 @@ int dhd_wakelock_restore(dhd_info_t *dhd)
 
 	spin_lock_irqsave(&dhd->wakelock_spinlock, flags);
 
-	if (dhd->wakelock_wd_state == DHD_WD_LOCK | DHD_WD_WAIVE) {
+	if (dhd->wakelock_wd_state == (DHD_WD_LOCK | DHD_WD_WAIVE)) {
 		dhd->wakelock_wd_state &= ~DHD_WD_WAIVE;
 		_dhd_acquire_wakelock(dhd);
 	}

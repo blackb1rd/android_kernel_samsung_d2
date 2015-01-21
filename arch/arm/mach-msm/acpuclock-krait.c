@@ -1126,14 +1126,14 @@ static struct pvs_table * __init select_freq_plan(u32 pte_efuse_phys,
 	dev_warn(drv.dev, "ACPU PVS_LEAKAGE: %d\n",pvs_leakage);
 	dev_warn(drv.dev, "ACPU PVS FMAX: %d\n",fmax);
 
-	if (global_sec_pvs_value == 0xfafa) {
+	/*if (global_sec_pvs_value == 0xfafa) {
 		dev_warn(drv.dev, "ACPU PVS: Your SoC sucks, boosting the crap out of it!!");
 		tbl_idx=0;
 		boost_vdd_core(&pvs_tables[bin_idx][tbl_idx]);
 	} else if (tbl_idx > 1) {
 		dev_warn(drv.dev, "ACPU PVS: Found %d, defaulting to 1.",tbl_idx);
 		tbl_idx = 1;
-	}
+	}*/
 #endif 
 
 	return &pvs_tables[bin_idx][tbl_idx];
